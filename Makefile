@@ -1,4 +1,4 @@
 server:
-	g++ socket_client.cpp -o client && g++ socket_server.cpp -o server 
+	g++ socket_client.cpp utils.cpp -o client && g++ socket_server.cpp utils.cpp -o server 
 clean:
 	rm client server
