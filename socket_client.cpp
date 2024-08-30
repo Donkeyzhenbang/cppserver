@@ -4,6 +4,9 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include "utils.h"
+
+#define BUFFER_SIZE 1024
+
 int main()
 {
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -14,10 +17,11 @@ int main()
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     serv_addr.sin_port = htons(8888);
+    
     errif(connect(sockfd, (sockaddr*)&serv_addr, sizeof(serv_addr)) == -1, "socket connect error");
     
     while(true){
-        char buf[1024];
+        char buf[BUFFER_SIZE];
         bzero(&buf, sizeof(buf));
         scanf("%s", buf);
         ssize_t write_bytes = write(sockfd, buf, sizeof(buf));

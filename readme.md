@@ -68,10 +68,12 @@ int connect(int sockfd, const struct sockaddr* addr, socklen_t addrlen);
 
 ## day02
 ### 注意事项
+
+- 注意send函数的MSG_DONTWAIT是非阻塞模式，缓冲区满了直接爆掉 使用write默认阻塞模式
 - printf输出到屏幕记得加\n 否则会暂存在缓冲区
 - inet_ntop 和 inet_pton 函数是线程安全的。
 - read 和 write 函数通常用于文件 I/O，但也可以用于套接字 I/O，尤其是在使用 Unix 域套接字时。
-recv send函数专门用于网络套接字，它提供了一些特定于网络操作的标志，如 MSG_DONTWAIT 来执行非阻塞接收。
+- recv send函数专门用于网络套接字，它提供了一些特定于网络操作的标志，如 MSG_DONTWAIT 来执行非阻塞接收。
 
 ### size_t
 - size_t 是 C 语言标准库中定义的一个数据类型，它是一个无符号整数类型，通常用于表示对象的大小或数组中的元素数量。在内存分配、数组索引和其他需要表示内存大小或对象数量的上下文中，size_t 是一个常用的类型。它的定义通常在头文件 <stddef.h> 或 <sys/types.h> 中。
@@ -195,3 +197,72 @@ int inet_pton(int af, const char* src, void* dst);
 
 
 ## day03
+### 基本思想
+- 在创建了服务器socket fd后，将这个fd添加到epoll，只要这个fd上发生可读事件，表示有一个新的客户端连接。然后accept这个客户端并将客户端的socket fd添加到epoll，epoll会监听客户端socket fd是否有事件发生，如果发生则处理事件。
+
+### 注意事项
+- IO多路复用与多线程有相似之处，但不是一个概念。IO复用时针对IO接口，多线程针对CPU。IO复用使用select，poll,epoll
+- epoll默认采用LT触发模式，即水平触发，只要fd上有事件，就会一直通知内核。这样可以保证所有事件都得到处理、不容易丢失，但可能发生的大量重复通知也会影响epoll的性能。如使用ET模式，即边缘触法，fd从无事件到有事件的变化会通知内核一次，之后就不会再次通知内核。这种方式十分高效，可以大大提高支持的并发度，但程序逻辑必须一次性很好地处理该fd上的事件，编程比LT更繁琐。注意ET模式必须搭配非阻塞式socket使用。
+
+### epoll_create / epoll_create1
+> 用于创建一个新的epoll文件描述符
+```cpp
+int epoll_create(int size);
+int epoll_create1(int flags);
+```
+参数说明：
+- size：指示可以监控的文件描述符的最大数量（epoll_create）。
+- flags：指定创建 epoll 实例时的一些选项（epoll_create1），如 EPOLL_CLOEXEC。
+
+### epoll_ctl
+> 用于添加/修改/删除epoll实例中的文件描述符
+```cpp
+int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
+```
+- epfd：epoll 文件描述符。
+- op：操作类型，可以是 EPOLL_CTL_ADD（添加）、EPOLL_CTL_MOD（修改）或 EPOLL_CTL_DEL（删除）。
+- fd：要操作的文件描述符。
+- event：指向 epoll_event 结构体的指针，指定了文件描述符的事件类型和回调函数。
+
+### epoll_wait
+> 用于等待epoll实例中的事件的发生
+```cpp
+int epoll_wait(int epfd, struct epoll_event* events, int maxevents, int timeout);
+```
+- epfd：epoll 文件描述符。
+- events：指向 epoll_event 结构体数组的指针，用于接收发生的事件。
+- maxevents：events 数组的最大长度。
+- timeout：等待事件的最长时间，单位为毫秒。如果设置为 -1，则无限等待。
+
+### epoll_pwait
+> 与epoll_wait类似，但增加了对信号的屏蔽
+```cpp
+int epoll_pwait(int epfd, struct epoll_event *events, int maxevents, int timeout, const sigset_t *sigmask);
+```
+- epfd：epoll 文件描述符。
+- events：指向 epoll_event 结构体数组的指针，用于接收发生的事件。
+- maxevents：events 数组的最大长度。
+- timeout：等待事件的最长时间，单位为毫秒。
+- sigmask：指向信号集的指针，用于指定在等待期间应该被屏蔽的信号。
+
+### epoll结构体
+```cpp
+typedef union epoll_data {
+  void *ptr;
+  int fd;
+  uint32_t u32;
+  uint64_t u64;
+} epoll_data_t;
+struct epoll_event {
+  uint32_t events;	/* Epoll events */
+  epoll_data_t data;	/* User data variable */
+} __EPOLL_PACKED;
+```
+EPOLLIN 
+EPOLLET
+
+void set_non_blocking(int fd)
+{
+    fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+}
+
