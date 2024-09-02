@@ -1,4 +1,30 @@
-server:
-	g++ socket_client.cpp utils.cpp -o client && g++ socket_server.cpp utils.cpp -o server 
+# #可执行文件
+TARGET = server client
+CXXFLAGS :=  -w -I./inc
+LDFLAGS := -lpthread 
+
+# 定义编译器
+CXX = g++ -std=c++11 -g
+
+# 定义源文件和目标文件
+SERVER_SRC = socket_server.cpp
+SERVER_SRC += $(wildcard src/*.cpp )
+
+CLIENT_SRC = socket_client.cpp
+CLIENT_SRC += $(wildcard src/*.cpp )
+
+# 默认目标
+all: $(TARGET)
+
+server: $(SERVER_SRC)
+	$(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS) -O2
+
+client: $(CLIENT_SRC)
+	$(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS) -O2
+	
+# 清理生成的文件
 clean:
-	rm client server
+	rm -f  $(TARGET) 
+
+.PHONY: all clean
+

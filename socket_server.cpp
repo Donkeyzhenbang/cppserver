@@ -55,7 +55,7 @@ int main()
     ev.events = EPOLLIN | EPOLLET;
     set_non_blocking(sockfd);
     epoll_ctl(epfd, EPOLL_CTL_ADD, sockfd, &ev);
-
+    printf("server fd : %d \n", sockfd);
     while(true){
         int nfds = epoll_wait(epfd, events, MAX_EVENTS, -1);
         errif(-1 == nfds, "epoll wait error");
