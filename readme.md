@@ -245,7 +245,8 @@ int epoll_pwait(int epfd, struct epoll_event *events, int maxevents, int timeout
 - timeout：等待事件的最长时间，单位为毫秒。
 - sigmask：指向信号集的指针，用于指定在等待期间应该被屏蔽的信号。
 
-### epoll结构体
+### epoll相关
+#### epoll结构体
 ```cpp
 typedef union epoll_data {
   void *ptr;
@@ -258,11 +259,57 @@ struct epoll_event {
   epoll_data_t data;	/* User data variable */
 } __EPOLL_PACKED;
 ```
-EPOLLIN 
-EPOLLET
 
+#### 宏定义
+- EPOLLIN 表示发生可读事件
+- EPOLLET 表示ET触发即边沿触发
+
+#### 边缘/水平触发
+
+epoll ⽀持两种事件触发模式，分别是边缘触发（edge-triggered，ET）和⽔平触发（level-triggered，LT）。这两个术语还挺抽象的，其实它们的区别还是很好理解的。
+- 使⽤边缘触发模式时，当被监控的 Socket 描述符上有可读事件发⽣时，服务器端只会从 epoll_wait
+中苏醒⼀次，即使进程没有调⽤ read 函数从内核读取数据，也依然只苏醒⼀次，因此我们程序要保
+证⼀次性将内核缓冲区的数据读取完；
+- 使⽤⽔平触发模式时，当被监控的 Socket 上有可读事件发⽣时，服务器端不断地从 epoll_wait 中苏
+醒，直到内核缓冲区数据被 read 函数读完才结束，⽬的是告诉我们有数据需要读取；
+
+### 非阻塞I/O
+ET边缘触发模式一般搭配非阻塞I/O使用,下面是设置服务器端sockfd使用非阻塞IO的函数
+```cpp
 void set_non_blocking(int fd)
 {
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
 }
+```
+- fcntl 是 Unix 和类 Unix 操作系统中的一个系统调用，用于操作文件描述符的控制选项。fcntl 可以用于多种目的，包括获取或设置文件描述符的各种属性，如文件锁定、文件描述符的非阻塞模式、文件描述符的异步 I/O 等。
+- F_GETFL 获取文件状态标志
+- F_SETFL 设置文件状态标志
+- 使用`|`逻辑或运算符不改变其他文件标志位 
 
+## day04
+### 基本思想
+- 使用类重新封装函数，分为三个大类Epoll, Socket, InetAddress，在做设计时特意将类中变量都设置为private，不知道对后面功能扩充而言是否臃肿
+- 要注意的是，ev用于将服务器fd/客户端sockfd添加到epoll实例中 events用于接收epoll_wait返回的事件集合，epoll_wait函数中有一个变量为struct epoll_event *__events，会将发生事件都保存在events中
+
+### 可见性
+- 在进行编写类的过程中，将变量设置为private来保证该变量在此类中为全局变量，可以任意调用，而对于其他不相关的类则无权进行访问。将变量设置为public则全局可以访问。对于private变量，现在的认知中，最好的处理办法是在类中重写set()与get()方法，通过public方法间接访问其他类中私有变量
+
+### 注意事项
+#### const
+```cpp
+const sockaddr_in* get_addr() const {return &addr_;}
+```
+- 函数后面的const表示这个成员函数不会修改任何成员变量，不改变对象状态，只读成员函数;
+- 前置的const表示返回的指针指向的对象是一个常量，不能通过指针修改他指向对象
+![alt text](assets/info_day04_const.png)
+
+#### 左值右值
+```cpp
+int client_sockfd = ::accept(fd_, (sockaddr*)addr->get_addr(), &(addr->get_addrlen()));
+socklen_t& get_addrlen() {return addrlen_;}
+```
+- 在后续调用get_addrlen(),需要对他的地址对应内存空间进行读写，如果这里不加`&`取地址符号，则为局部变量创建了一个左值，没有分配长久存在的内存空间，无法将相关信息保存在addrlen_中
+
+#### bug修复
+- 在初次编写完此代码时，运行服务器时当有客户端连接一直有报错：`epoll wait error: Bad address` 原因是如图使用bzero时第一个变量前习惯性加`&`导致传入参数为二级指针
+![alt text](assets/bug_day04_bzero.png)

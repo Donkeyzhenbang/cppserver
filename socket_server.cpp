@@ -37,7 +37,10 @@ void read_event_handler(int fd)
     }
 }
 
-//ev用于将服务器fd/客户端sockfd添加到epoll实例中 events用于接收epoll_wait返回的事件集合
+/**
+ * @brief ev用于将服务器fd/客户端sockfd添加到epoll实例中 events用于接收epoll_wait返回的事件集合
+ * int epoll_wait (int __epfd, struct epoll_event *__events, int __maxevents, int __timeout);
+ * */
 int main()
 {
     //创建Socket
