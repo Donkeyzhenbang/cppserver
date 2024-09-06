@@ -26,11 +26,11 @@ void read_event_handler(int fd)
         }else if(bytes_read == -1 && errno == EINTR){ //read调用信号中断客户端正常中断 继续读取
             printf("continue reading \n");
             continue;
-        }else if(bytes_read == -1 && errno == EINTR){//果 read 调用失败并且 errno 设置为 EAGAIN 或 EWOULDBLOCK，这表示缓冲区中没有更多数据可读（在非阻塞模式下）
+        }else if(bytes_read == -1 && ((errno == EAGAIN) || (errno == EWOULDBLOCK))){//如果 read 调用失败并且 errno 设置为 EAGAIN 或 EWOULDBLOCK，这表示缓冲区中没有更多数据可读（在非阻塞模式下）
             printf("finish reading once, errno: %d \n", errno);
             break;
         }else if(bytes_read == 0){//EOF 客户端断开连接
-            printf("EOF, client fd %d disconnetced\n", fd);
+            printf("EOF, client fd %d disconnected \n", fd);
             close(fd);
             break;
         }
@@ -62,7 +62,7 @@ int main()
             }else if(event[i].events & EPOLLIN){//不是服务器fd发生可读事件 表示客户端发来消息
                 read_event_handler(event[i].data.fd);
             }else{
-                printf("something else happened\n");
+                printf("something else happened \n");
             }
         }
 
