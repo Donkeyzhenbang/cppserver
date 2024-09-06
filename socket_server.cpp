@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iostream>
 #include <sys/socket.h>
 #include <sys/epoll.h>
 #include <arpa/inet.h>
@@ -7,101 +8,67 @@
 #include <errno.h>
 #include <fcntl.h>
 #include "utils.h"
+#include "Socket.h"
+#include "InetAddress.h"
+#include "Epoll.h"
 
-#define MAX_EVENTS 1024
 #define READ_BUFFER 1024
 
-void set_non_blocking(int fd)
+void read_event_handler(int fd)
 {
-    fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
-}
-
-int main()
-{
-    //创建socket
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    errif(sockfd == -1, "socket create error");
-
-    //初始化服务器sockaddr_in结构体
-    struct sockaddr_in serv_addr;
-    bzero(&serv_addr, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    serv_addr.sin_port = htons(8888);
-
-    //bind
-    errif(bind(sockfd, (sockaddr*)&serv_addr, sizeof(serv_addr)) == -1, "socket bind error");
-
-    //listen
-    errif(listen(sockfd, SOMAXCONN) == -1, "socket listen error");
-
-    //初始化客户端sockaddr_in结构体    
-    struct sockaddr_in client_addr;
-    socklen_t client_addr_len = sizeof(client_addr);
-    bzero(&client_addr, sizeof(client_addr));
-
-    //accept接受客户端连接 打印socket描述符 IP Port
-    // int client_sockfd = accept(sockfd, (sockaddr*)&client_addr, &client_addr_len);
-    // errif(client_sockfd == -1, "socket accept error");
-    // printf("new client fd %d ! IP: %s Port : %d \n", client_sockfd, inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-
-    int epfd = epoll_create1(0);
-    errif(epfd == -1, "epoll create error");
-    struct epoll_event events[MAX_EVENTS], ev;
-    bzero(&events, sizeof(events));
-
-    bzero(&ev, sizeof(ev));
-    ev.data.fd = sockfd;
-    ev.events = EPOLLIN | EPOLLET;
-    set_non_blocking(sockfd);
-    epoll_ctl(epfd, EPOLL_CTL_ADD, sockfd, &ev);
-    printf("server fd : %d \n", sockfd);
+    char buf[READ_BUFFER];
     while(true){
-        int nfds = epoll_wait(epfd, events, MAX_EVENTS, -1);
-        errif(-1 == nfds, "epoll wait error");
-        for(int i = 0; i < nfds; i ++){
-            if(events[i].data.fd == sockfd){
-                struct sockaddr_in client_addr;
-                bzero(&client_addr, sizeof(client_addr));
-                socklen_t client_addr_len = sizeof(client_addr);
-
-                int client_sockfd = accept(sockfd, (sockaddr*)&client_addr, &client_addr_len); 
-                errif(client_sockfd == -1, "socket accept error");
-                printf("new client fd %d IP: %s Port: %d \n", client_sockfd, inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-
-                bzero(&ev, sizeof(ev));
-                ev.data.fd = client_sockfd;
-                ev.events = EPOLLIN | EPOLLET;
-                set_non_blocking(client_sockfd);
-                epoll_ctl(epfd, EPOLL_CTL_ADD, client_sockfd, &ev);
-            }else if(events[i].events & EPOLLIN){
-                char buf[READ_BUFFER];
-                while(true){
-                    printf("test \n");
-                    bzero(&buf, sizeof(buf));
-                    ssize_t bytes_read = read(events[i].data.fd, buf, sizeof(buf));
-                    if(bytes_read > 0){
-                        printf("message from client fd %d : %s \n", events[i].data.fd, buf);
-                        write(events[i].data.fd, buf, sizeof(buf));
-                    }else if(bytes_read == -1 && errno == EINTR){
-                        printf("continue reading");
-                        continue;
-                    }else if(bytes_read == -1 && ((errno == EAGAIN) || (errno == EWOULDBLOCK))){ //非阻塞IO
-                        printf("finish reading once, errno : %d \n", errno);
-                        break;    
-                    }else if(bytes_read == 0){
-                        printf("EOF, client fd %d disconnected \n", events[i].data.fd);
-                        close(events[i].data.fd);
-                        break;
-                    }
-                }            
-            }
-            else {
-                printf("something else happened");
-            }
+        bzero(&buf, sizeof(buf));
+        ssize_t bytes_read = read(fd, buf, sizeof(buf));
+        if(bytes_read > 0){
+            printf("message from client fd %d : %s \n", fd, buf);
+            write(fd, buf, sizeof(buf));
+        }else if(bytes_read == -1 && errno == EINTR){ //read调用信号中断客户端正常中断 继续读取
+            printf("continue reading \n");
+            continue;
+        }else if(bytes_read == -1 && errno == EINTR){//果 read 调用失败并且 errno 设置为 EAGAIN 或 EWOULDBLOCK，这表示缓冲区中没有更多数据可读（在非阻塞模式下）
+            printf("finish reading once, errno: %d \n", errno);
+            break;
+        }else if(bytes_read == 0){//EOF 客户端断开连接
+            printf("EOF, client fd %d disconnetced\n", fd);
+            close(fd);
+            break;
         }
     }
-    close(sockfd);
+}
+
+//ev用于将服务器fd/客户端sockfd添加到epoll实例中 events用于接收epoll_wait返回的事件集合
+int main()
+{
+    //创建Socket
+    Socket* serv_sock = new Socket();
+    //初始化服务器sockaddr_in结构体
+    InetAddress* serv_addr = new InetAddress("127.0.0.1", 8888);
+    serv_sock->bind(serv_addr);
+    serv_sock->listen();
+    Epoll* ep = new Epoll(); 
+    serv_sock->set_nonblocking();
+    ep->add_fd(serv_sock->get_sockfd(), EPOLLIN | EPOLLET);
+    while(1){
+        std::vector<epoll_event> event = ep->poll();
+        int nfds = event.size();
+        for(int i = 0; i < nfds; i ++){
+            if(event[i].data.fd == serv_sock->get_sockfd()){ //新的客户端连接
+                InetAddress* client_addr = new InetAddress();
+                Socket* client_sock = new Socket(serv_sock->accept(client_addr));
+                printf("new client fd %d IP:%s Port: %d \n",client_sock->get_sockfd(), inet_ntoa(client_addr->get_addr()->sin_addr), ntohs(client_addr->get_addr()->sin_port));
+                client_sock->set_nonblocking();
+                ep->add_fd(client_sock->get_sockfd(), EPOLLIN | EPOLLET);
+            }else if(event[i].events & EPOLLIN){//不是服务器fd发生可读事件 表示客户端发来消息
+                read_event_handler(event[i].data.fd);
+            }else{
+                printf("something else happened\n");
+            }
+        }
+
+    }
+    delete serv_sock;
+    delete serv_addr;
     return 0;
     
 }

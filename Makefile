@@ -17,10 +17,10 @@ CLIENT_SRC += $(wildcard src/*.cpp )
 all: $(TARGET)
 
 server: $(SERVER_SRC)
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS) -O2
+	$(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS) 
 
 client: $(CLIENT_SRC)
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS) -O2
+	$(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS) 
 	
 # 清理生成的文件
 clean:
