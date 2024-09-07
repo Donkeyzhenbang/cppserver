@@ -1,4 +1,4 @@
-## day01
+## day01 Socket编程
 
 ### 注意事项
 - 在使用 accept 和 connect 之前，需要确保套接字已经正确创建并配置（例如，对于 accept，需要先绑定（bind）和监听（listen）套接字；对于 connect，需要先创建套接字并指定服务器的地址）。
@@ -66,7 +66,7 @@ int connect(int sockfd, const struct sockaddr* addr, socklen_t addrlen);
 - connect 返回 0 表示连接成功。
 - 在失败时，这两个函数都会返回 -1，并设置全局变量 errno 以指示错误的具体原因。
 
-## day02
+## day02 错误处理
 ### 注意事项
 
 - 注意send函数的MSG_DONTWAIT是非阻塞模式，缓冲区满了直接爆掉 使用write默认阻塞模式
@@ -196,9 +196,11 @@ int inet_pton(int af, const char* src, void* dst);
 
 
 
-## day03
+## day03 epoll与高并发
 ### 基本思想
 - 在创建了服务器socket fd后，将这个fd添加到epoll，只要这个fd上发生可读事件，表示有一个新的客户端连接。然后accept这个客户端并将客户端的socket fd添加到epoll，epoll会监听客户端socket fd是否有事件发生，如果发生则处理事件。
+
+![alt text](assets/info_day03_epoll.png)
 
 ### 注意事项
 - IO多路复用与多线程有相似之处，但不是一个概念。IO复用时针对IO接口，多线程针对CPU。IO复用使用select，poll,epoll
@@ -286,7 +288,24 @@ void set_non_blocking(int fd)
 - F_SETFL 设置文件状态标志
 - 使用`|`逻辑或运算符不改变其他文件标志位 
 
-## day04
+### 总结
+
+- epfd 是通过调用 epoll_create1(0) 创建的 epoll 实例的文件描述符。
+它代表了 epoll 的一个实例，用于注册要监听的文件描述符（FD），并查询发生的事件。
+
+- ev 是一个 struct epoll_event 类型的变量，用于定义要注册到 epoll 实例中的事件类型和关联的数据。
+在代码中，ev 被初始化并设置为监听 EPOLLIN（可读事件）和 EPOLLET（边缘触发模式）。
+ev.data.fd 存储了要监听的文件描述符，而 ev.events 存储了事件类型。
+
+- events 是一个 struct epoll_event 类型的数组，用于存储 epoll_wait 函数返回的事件。
+当调用 epoll_wait 函数时，它会填充 events 数组，每个数组元素代表一个发生的事件，包括事件类型和触发事件的文件描述符。
+在循环中，events 数组被用来遍历所有发生的事件，并根据事件类型执行相应的处理。
+
+- epoll形象工作结构如下
+
+![alt text](assets/info_day04_epoll_struct.png)
+
+## day04 封装成类
 ### 基本思想
 - 使用类重新封装函数，分为三个大类Epoll, Socket, InetAddress，在做设计时特意将类中变量都设置为private，不知道对后面功能扩充而言是否臃肿
 - 要注意的是，ev用于将服务器fd/客户端sockfd添加到epoll实例中 events用于接收epoll_wait返回的事件集合，epoll_wait函数中有一个变量为struct epoll_event *__events，会将发生事件都保存在events中
@@ -301,15 +320,22 @@ const sockaddr_in* get_addr() const {return &addr_;}
 ```
 - 函数后面的const表示这个成员函数不会修改任何成员变量，不改变对象状态，只读成员函数;
 - 前置的const表示返回的指针指向的对象是一个常量，不能通过指针修改他指向对象
-![alt text](assets/info_day04_const.png)
+
+
 
 #### 左值右值
 ```cpp
 int client_sockfd = ::accept(fd_, (sockaddr*)addr->get_addr(), &(addr->get_addrlen()));
 socklen_t& get_addrlen() {return addrlen_;}
 ```
-- 在后续调用get_addrlen(),需要对他的地址对应内存空间进行读写，如果这里不加`&`取地址符号，则为局部变量创建了一个左值，没有分配长久存在的内存空间，无法将相关信息保存在addrlen_中
+- 在后续调用get_addrlen(),需要对他的地址对应内存空间进行读写，如果这里不加`&`取地址符号，则为右值（比如临时变量或一个值），没有分配长久存在的内存空间，无法将相关信息保存在addrlen_中。所以要分配左值引用。
+- 右值作为一个值可以被接收，比如函数返回值，当时不能对其取地址。在 C++ 中，对于基本数据类型的返回值（如 int），编译器通常会优化这个过程，使得返回值直接存储在寄存器中，而不是在内存中。
+
+![alt text](assets/info_day04_system.png)
 
 #### bug修复
 - 在初次编写完此代码时，运行服务器时当有客户端连接一直有报错：`epoll wait error: Bad address` 原因是如图使用bzero时第一个变量前习惯性加`&`导致传入参数为二级指针
+
 ![alt text](assets/bug_day04_bzero.png)
+
+## day05 epoll高级用法-channel

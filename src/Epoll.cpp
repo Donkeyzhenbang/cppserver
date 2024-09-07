@@ -4,6 +4,7 @@
 #include <vector>
 #include "Epoll.h"
 #include "utils.h"
+#include "Channel.h"
 #define MAX_EVENTS 1000
 
 Epoll::Epoll() : epfd_(-1), events_(nullptr)
@@ -32,13 +33,15 @@ void Epoll::add_fd(int fd, uint32_t op)
     errif(epoll_ctl(epfd_, EPOLL_CTL_ADD, fd, &ev), "epoll add event error");
 }
 
-std::vector<epoll_event> Epoll::poll(int timeout)
+std::vector<Channel*> Epoll::poll(int timeout)
 {
-    std::vector<epoll_event> active_events;
+    std::vector<Channel*> active_events;
     int nfds = epoll_wait(epfd_, events_, MAX_EVENTS, timeout);
     errif(nfds == -1, "epoll wait error");
     for(int i = 0; i < nfds; i ++){
-        active_events.push_back(events_[i]);
+        Channel* ch = (Channel*)events_[i].data.ptr;
+        ch->set_revents(events_[i].events);
+        active_events.push_back(ch);
     }
     return active_events;
 }

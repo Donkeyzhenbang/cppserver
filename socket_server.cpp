@@ -11,6 +11,7 @@
 #include "Socket.h"
 #include "InetAddress.h"
 #include "Epoll.h"
+#include "Channel.h"
 
 #define READ_BUFFER 1024
 
@@ -51,19 +52,23 @@ int main()
     serv_sock->listen();
     Epoll* ep = new Epoll(); 
     serv_sock->set_nonblocking();
-    ep->add_fd(serv_sock->get_sockfd(), EPOLLIN | EPOLLET);
+    Channel* serv_channel = new Channel(ep, serv_sock->get_sockfd());
+    serv_channel->enable_reading();
+    // ep->add_fd(serv_sock->get_sockfd(), EPOLLIN | EPOLLET);
     while(1){
-        std::vector<epoll_event> event = ep->poll();
-        int nfds = event.size();
+        std::vector<Channel*> active_channels = ep->poll();
+        int nfds = active_channels.size();
         for(int i = 0; i < nfds; i ++){
-            if(event[i].data.fd == serv_sock->get_sockfd()){ //新的客户端连接
+            int chfd = active_channels[i]->get_fd();
+            if(chfd == serv_sock->get_sockfd()){ //新的客户端连接
                 InetAddress* client_addr = new InetAddress();
                 Socket* client_sock = new Socket(serv_sock->accept(client_addr));
                 printf("new client fd %d IP:%s Port: %d \n",client_sock->get_sockfd(), inet_ntoa(client_addr->get_addr()->sin_addr), ntohs(client_addr->get_addr()->sin_port));
                 client_sock->set_nonblocking();
-                ep->add_fd(client_sock->get_sockfd(), EPOLLIN | EPOLLET);
-            }else if(event[i].events & EPOLLIN){//不是服务器fd发生可读事件 表示客户端发来消息
-                read_event_handler(event[i].data.fd);
+                Channel* client_channel = new Channel(ep, client_sock->get_sockfd());
+                client_channel->enable_reading();
+            }else if(active_channels[i]->get_revents() & EPOLLIN){//不是服务器fd发生可读事件 表示客户端发来消息
+                read_event_handler(active_channels[i]->get_fd());
             }else{
                 printf("something else happened \n");
             }
