@@ -370,6 +370,36 @@ void Channel::enable_reading()
 - 试想，如果一个服务器同时提供不同的服务，如HTTP、FTP等，那么就算文件描述符上发生的事件都是可读事件，不同的连接类型也将决定不同的处理逻辑，仅仅通过一个文件描述符来区分显然会很麻烦，我们更加希望拿到关于这个文件描述符更多的信息。
 - 这个版本服务器内只有一个EventLoop，当其中有可读事件发生时，我们可以拿到该描述符对应的Channel。在新建Channel时，根据Channel描述符的不同分别绑定了两个回调函数，newConnection()函数被绑定到服务器socket上，handlrReadEvent()被绑定到新接受的客户端socket上。这样如果服务器socket有可读事件，Channel里的handleEvent()函数实际上会调用Server类的newConnection()新建连接。如果客户端socket有可读事件，Channel里的handleEvent()函数实际上会调用Server类的handlerReadEvent()响应客户端请求。
 
+```cpp
+std::vector<Channel*> Epoll::poll(int timeout)
+{
+    std::vector<Channel*> active_events;
+    int nfds = epoll_wait(epfd_, events_, MAX_EVENTS, timeout);
+    errif(nfds == -1, "epoll wait error");
+    for(int i = 0; i < nfds; i ++){
+        Channel* ch = (Channel*)events_[i].data.ptr;
+        ch->set_revents(events_[i].events);
+        active_events.push_back(ch);
+    }
+    return active_events;
+} 
+
+typedef union epoll_data
+{
+  void *ptr;
+  int fd;
+  uint32_t u32;
+  uint64_t u64;
+} epoll_data_t;
+
+```
+- 这里核心是`Channel* ch = (Channel*)events_[i].data.ptr;`这样我们就将一个文件描述符替换指向为一个Channel类
+- 由于epoll_data是union联合体，其中内存分布如图所示，整个联合体在ubuntu20.04中是8字节，由最大的数据类型决定，这里是void*和u64决定
+- 联合体对应的内存中存储的数据是确定的，只不过编译器会根据代码将其解释为不同的类型对其进行解析，比如u32和int这里都取了4位，注意小段对齐
+- `printf("int: %d, void* : %d \n", sizeof(int), sizeof(void*));`, 这里结果是`int: 4, void* : 8` 记得加\n否则会留在缓冲区不显示
+
+![alt text](assets/info_day05_epoll_data.png)
+
 ## day06 服务器与事件驱动核心
 ### 基本思想
 - 我们为每一个添加到epoll的文件描述符都添加了一个Channel，用户可以自由注册各种事件、很方便地根据不同事件类型设置不同回调函数（在当前的源代码中只支持了目前所需的可读事件，将在之后逐渐进行完善）
