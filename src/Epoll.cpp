@@ -33,6 +33,13 @@ void Epoll::add_fd(int fd, uint32_t op)
     errif(epoll_ctl(epfd_, EPOLL_CTL_ADD, fd, &ev), "epoll add event error");
 }
 
+
+/**
+ * @brief poll是针对已经存进epoll实例中的待监听端口，核心函数epoll_wait()
+ * 
+ * @param timeout 
+ * @return std::vector<Channel*> 
+ */
 std::vector<Channel*> Epoll::poll(int timeout)
 {
     std::vector<Channel*> active_events;
@@ -46,6 +53,13 @@ std::vector<Channel*> Epoll::poll(int timeout)
     return active_events;
 } 
 
+/**
+ * @brief update_channel核心函数时
+ * epoll_ctl将需要监听事件丢进epoll红黑树 这里让ev.data.ptr (void*)类型指向channel
+ * 后面发生响应时再将其赋值给Channel* ch 将这些push进vector<Channel*>数组中
+ * 
+ * @param channel 
+ */
 void Epoll::update_channel(Channel* channel)
 {
     int fd = channel->get_fd();
