@@ -339,3 +339,38 @@ socklen_t& get_addrlen() {return addrlen_;}
 ![alt text](assets/bug_day04_bzero.png)
 
 ## day05 epoll高级用法-channel
+### 基本思想
+- 将一个文件描述符添加到epoll红黑树，当该文件描述符上有事件发生时，拿到它、处理事件，这样我们每次只能拿到一个文件描述符，也就是一个int类型的整型值。试想，如果一个服务器同时提供不同的服务，如HTTP、FTP等，那么就算文件描述符上发生的事件都是可读事件，不同的连接类型也将决定不同的处理逻辑，仅仅通过一个文件描述符来区分显然会很麻烦，我们更加希望拿到关于这个文件描述符更多的信息
+- epoll中的data其实是一个union类型，可以储存一个指针。而通过指针，理论上我们可以指向任何一个地址块的内容，可以是一个类的对象，这样就可以将一个文件描述符封装成一个Channel类，一个Channel类自始至终只负责一个文件描述符，对不同的服务、不同的事件类型，都可以在类中进行不同的处理，而不是仅仅拿到一个int类型的文件描述符。
+- 每个文件描述符会被分发到一个Epoll类，用一个ep指针来指向。类中还有这个Channel负责的文件描述符。另外是两个事件变量，events表示希望监听这个文件描述符的哪些事件，因为不同事件的处理方式不一样。revents表示在epoll返回该Channel时文件描述符正在发生的事件。inEpoll表示当前Channel是否已经在epoll红黑树中，为了注册Channel的时候方便区分使用EPOLL_CTL_ADD还是EPOLL_CTL_MOD。
+```cpp
+typedef union epoll_data {
+  void *ptr;
+  int fd;
+  uint32_t u32;
+  uint64_t u64;
+} epoll_data_t;
+struct epoll_event {
+  uint32_t events;	/* Epoll events */
+  epoll_data_t data;	/* User data variable */
+} __EPOLL_PACKED;
+```
+
+### this
+- cpp中this 关键字是一个指针，它指向当前对象的内存地址。它用于在类的成员函数中引用当前对象的成员变量和成员函数
+```cpp
+void Channel::enable_reading()
+{
+    events_ = EPOLLIN | EPOLLET;
+    ep_->update_channel(this);
+}
+```
+### channel
+使用channel类替换单一fd文件描述符的原因
+- 试想，如果一个服务器同时提供不同的服务，如HTTP、FTP等，那么就算文件描述符上发生的事件都是可读事件，不同的连接类型也将决定不同的处理逻辑，仅仅通过一个文件描述符来区分显然会很麻烦，我们更加希望拿到关于这个文件描述符更多的信息。
+- 这个版本服务器内只有一个EventLoop，当其中有可读事件发生时，我们可以拿到该描述符对应的Channel。在新建Channel时，根据Channel描述符的不同分别绑定了两个回调函数，newConnection()函数被绑定到服务器socket上，handlrReadEvent()被绑定到新接受的客户端socket上。这样如果服务器socket有可读事件，Channel里的handleEvent()函数实际上会调用Server类的newConnection()新建连接。如果客户端socket有可读事件，Channel里的handleEvent()函数实际上会调用Server类的handlerReadEvent()响应客户端请求。
+
+## day06 服务器与事件驱动核心
+### 基本思想
+- 我们为每一个添加到epoll的文件描述符都添加了一个Channel，用户可以自由注册各种事件、很方便地根据不同事件类型设置不同回调函数（在当前的源代码中只支持了目前所需的可读事件，将在之后逐渐进行完善）
+
