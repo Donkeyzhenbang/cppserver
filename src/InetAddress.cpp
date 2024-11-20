@@ -1,17 +1,17 @@
-#include <string.h>
+#include <cstring>
 #include "InetAddress.h"
 
-InetAddress::InetAddress() : addrlen_(sizeof(addr_)){
-    bzero(&addr_, sizeof(addr_));
+InetAddress::InetAddress() : addr_len(sizeof(addr)){
+    bzero(&addr, sizeof(addr));
 }
 
-InetAddress::InetAddress(const char* ip, uint16_t port)
+InetAddress::InetAddress(const char* ip, uint16_t port) : addr_len(sizeof(addr))
 {
-    bzero(&addr_, sizeof(addr_));
-    addr_.sin_family = AF_INET;
-    addr_.sin_addr.s_addr = inet_addr(ip);
-    addr_.sin_port = htons(port);
-    addrlen_ = sizeof(addr_);
+    bzero(&addr, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = inet_addr(ip);
+    addr.sin_port = htons(port);
+    addr_len = sizeof(addr);
 }
 
 InetAddress::~InetAddress()

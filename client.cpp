@@ -3,9 +3,12 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include "utils.h"
-#include "InetAddress.h"
+#include "./src/utils.h"
+#include "./src/InetAddress.h"
 
+// #define NET_IP "47.121.121.86"
+#define NET_IP "127.0.0.1"
+#define NET_PORT 8888
 #define BUFFER_SIZE 1024
 
 int main()
@@ -16,8 +19,8 @@ int main()
     struct sockaddr_in serv_addr;
     bzero(&serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    serv_addr.sin_port = htons(8888);
+    serv_addr.sin_addr.s_addr = inet_addr(NET_IP);
+    serv_addr.sin_port = htons(NET_PORT);
     
     errif(connect(sockfd, (sockaddr*)&serv_addr, sizeof(serv_addr)) == -1, "socket connect error");
     
