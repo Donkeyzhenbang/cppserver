@@ -404,3 +404,8 @@ typedef union epoll_data
 ### 基本思想
 - 我们为每一个添加到epoll的文件描述符都添加了一个Channel，用户可以自由注册各种事件、很方便地根据不同事件类型设置不同回调函数（在当前的源代码中只支持了目前所需的可读事件，将在之后逐渐进行完善）
 
+类之间的关系图
+
+![alt text](assets/info_day06_class_uml.png)
+
+![alt text](assets/info_day06_class_plant_uml.png)

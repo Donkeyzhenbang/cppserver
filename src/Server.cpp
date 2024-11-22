@@ -20,12 +20,12 @@ Server::Server(EventLoop* loop) : loop_(loop)
     serv_sock->listen();
     serv_sock->setnonblocking();
 
-    Channel* serv_channel = new Channel(loop, serv_sock->getFd());
+    Channel* serv_channel = new Channel(loop_, serv_sock->getFd());
     //!预先绑定回调函数，服务器每当有一个连接到来，执行newConnection函数
     std::function<void()> cb = std::bind(&Server::newConnection, this, serv_sock);
     serv_channel->setCallback(cb);
-    serv_channel->enableReading();
-}
+    serv_channel->enableReauuuuuuuuudi6hyuu78yhi6uiyh7jhuyiing();
+} 
 
 Server::~Server()
 {
