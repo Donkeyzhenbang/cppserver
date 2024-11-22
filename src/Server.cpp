@@ -5,6 +5,7 @@
 #include "Server.h"
 #include "EventLoop.h"
 #include "Channel.h"
+#include "Acceptor.h"
 #include "Socket.h"
 #include "InetAddress.h"
 
@@ -12,24 +13,16 @@
 #define NET_IP "127.0.0.1"
 #define NET_PORT 8888
 
-Server::Server(EventLoop* loop) : loop_(loop)
+Server::Server(EventLoop* loop) : loop_(loop), acceptor_(nullptr)
 {
-    Socket* serv_sock = new Socket();
-    InetAddress* serv_addr = new InetAddress(NET_IP, NET_PORT);
-    serv_sock->bind(serv_addr);
-    serv_sock->listen();
-    serv_sock->setnonblocking();
-
-    Channel* serv_channel = new Channel(loop_, serv_sock->getFd());
-    //!预先绑定回调函数，服务器每当有一个连接到来，执行newConnection函数
-    std::function<void()> cb = std::bind(&Server::newConnection, this, serv_sock);
-    serv_channel->setCallback(cb);
-    serv_channel->enableReauuuuuuuuudi6hyuu78yhi6uiyh7jhuyiing();
-} 
+    acceptor_ = new Acceptor(loop_);
+    std::function<void(Socket*)> cb = std::bind(&Server::newConnection, this, std::placeholders::_1);
+    acceptor_->setNewConnectionCallback(cb);
+}
 
 Server::~Server()
 {
-
+    delete acceptor_;
 }
 
 void Server::handleReadEvent(int sockfd){
