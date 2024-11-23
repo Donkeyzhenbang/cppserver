@@ -4,6 +4,7 @@
 class EventLoop;
 class Socket;
 class Channel;
+class Buffer;
 class Connection
 {
 private:
@@ -11,6 +12,8 @@ private:
     Socket* sock_;
     Channel* channel_;
     std::function<void(Socket*)> deleteConnectionCallback;
+    std::string *inBuffer;
+    Buffer *readBuffer;
 public:
     Connection(EventLoop* loop, Socket* sock);
     ~Connection();

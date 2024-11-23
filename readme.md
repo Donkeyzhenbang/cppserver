@@ -430,3 +430,15 @@ typedef union epoll_data
 
 ## day09 缓冲区-大作用
 ### 基本思想
+
+使用channel操作epoll的优势：是channel相比于传统的单个fd
+
+![alt text](assets/info_day09_channel-fd.png)
+
+![alt text](assets/info_day09_channel-fd01.png)
+
+![alt text](assets/info_day09_channel-fd02.png)
+
+![alt text](assets/info_day09_channel-fd03.png)
+
+![alt text](assets/info_day09_port_reuse.png)

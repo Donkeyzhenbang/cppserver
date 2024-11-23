@@ -11,8 +11,7 @@
 #include "Connection.h"
 
 #define READ_BUFFER 1024
-#define NET_IP "127.0.0.1"
-#define NET_PORT 8888
+
 
 Server::Server(EventLoop* loop) : loop_(loop), acceptor_(nullptr)
 {
