@@ -409,3 +409,24 @@ typedef union epoll_data
 ![alt text](assets/info_day06_class_uml.png)
 
 ![alt text](assets/info_day06_class_plant_uml.png)
+
+## day07 为我们的服务器添加一个Acceptor
+### 基本思想
+- 我们之前接受socket连接都是在Server类中实现的，可以分离接受连接这一模块，添加一个`Acceptor`类，使得代码更加抽象
+- 这样一来，新建连接的逻辑就在Acceptor类中。但逻辑上新socket建立后就和之前监听的服务器socket没有任何关系了，TCP连接和Acceptor一样，拥有以上提到的三个特点，这两个类之间应该是平行关系。所以新的TCP连接应该由Server类来创建并管理生命周期，而不是Acceptor。并且将这一部分代码放在Server类里也并没有打破服务器的通用性，因为对于所有的服务，都要使用Acceptor来建立连接。
+
+为实现上述内容，有以下两种方式：
+- 使用传统的虚类、虚函数来设计一个接口
+- C++11的特性：std::function、std::bind、右值引用、std::move等实现函数回调
+
+虚函数使用后续补充，这里使用std:function来实现，在QT程序中也使用过同样的策略，绑定回调函数
+
+## day08 一切皆是类，连TCP连接也不例外
+### 基本思想
+- 本章重写了`Socket`类与`InetAddress`类，将之前`public`成员改为`private`，新增set()与get()方法
+- 今天的抽象过程中，将客户端连接都抽象为`Connection`类，客户端存储在`Server`类中的`map`，由`Server`管理，每一个类的实例都通过一个独有的`channel`负责分发到`epoll`，该`Channel`的事件处理函数`handleEvent()`会调用Connection中的事件处理函数来响应客户端请求。`Connection`处理事件的逻辑应该由`Connection`类本身来完成
+- 同时，昨天将`Acceptor`类的处理事件函数（也就是新建连接功能）被放到了`Server`类中，今天将客户端建立连接这一过程放到了Acceptor的方法中，建立连接后执行回调函数还是在Server类中的`newConnection`，具体内容为设定取消连接的回调函数并将已建立连接存入map中
+- 对于断开TCP连接操作，也就是销毁一个`Connection`类的实例。由于`Connection`的生命周期由`Server`进行管理，所以也应该由`Server`来删除连接。如果在`Connection`业务中需要断开连接操作，也应该和之前一样使用回调函数来实现，在`Server`新建每一个连接时绑定删除该连接的回调函数
+
+## day09 缓冲区-大作用
+### 基本思想
