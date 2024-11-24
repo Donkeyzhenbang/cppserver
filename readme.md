@@ -366,7 +366,7 @@ void Channel::enable_reading()
 }
 ```
 ### channel
-使用channel类替换单一fd文件描述符的原因
+> 使用channel类替换单一fd文件描述符的原因
 - 试想，如果一个服务器同时提供不同的服务，如HTTP、FTP等，那么就算文件描述符上发生的事件都是可读事件，不同的连接类型也将决定不同的处理逻辑，仅仅通过一个文件描述符来区分显然会很麻烦，我们更加希望拿到关于这个文件描述符更多的信息。
 - 这个版本服务器内只有一个EventLoop，当其中有可读事件发生时，我们可以拿到该描述符对应的Channel。在新建Channel时，根据Channel描述符的不同分别绑定了两个回调函数，newConnection()函数被绑定到服务器socket上，handlrReadEvent()被绑定到新接受的客户端socket上。这样如果服务器socket有可读事件，Channel里的handleEvent()函数实际上会调用Server类的newConnection()新建连接。如果客户端socket有可读事件，Channel里的handleEvent()函数实际上会调用Server类的handlerReadEvent()响应客户端请求。
 
@@ -430,8 +430,12 @@ typedef union epoll_data
 
 ## day09 缓冲区-大作用
 ### 基本思想
+- 非阻塞式socket IO的读取，可以看到使用的读缓冲区大小为1024，每次从TCP缓冲区读取1024大小的数据到读缓冲区，然后发送给客户端。这是最底层C语言的编码，在逻辑上有很多不合适的地方。比如我们不知道客户端信息的真正大小是多少，只能以1024的读缓冲区去读TCP缓冲区（就算TCP缓冲区的数据没有1024，也会把后面的用空值补满）；也不能一次性读取所有客户端数据，再统一发给客户端。
+- 以封装一个缓冲区是很有必要的，为每一个Connection类分配一个读缓冲区和写缓冲区，从客户端读取来的数据都存放在读缓冲区里，这样Connection类就不再直接使用char buf[]这种最笨的缓冲区来处理读写操作。
+- 这个缓冲区类使用std::string来储存数据，也可以使用std::vector<char>。为每一个TCP连接分配一个读缓冲区后，就可以把客户端的信息读取到这个缓冲区内，缓冲区大小就是客户端发送的报文真实大小
+- 在这里依然有一个char buf[]缓冲区，用于系统调用read()的读取，这个缓冲区大小无所谓，但太大或太小都可能对性能有影响（太小读取次数增多，太大资源浪费、单次读取速度慢），设置为1到设备TCP缓冲区的大小都可以。以上代码会把socket IO上的可读数据全部读取到缓冲区，缓冲区大小就等于客户端发送的数据大小。全部读取完成之后，可以构造一个写缓冲区、填好数据发送给客户端。由于是echo服务器，所以这里使用了相同的缓冲区。 
 
-使用channel操作epoll的优势：是channel相比于传统的单个fd
+> 下面是之前使用channel操作epoll的优势：是channel相比于传统的单个fd
 
 ![alt text](assets/info_day09_channel-fd.png)
 
@@ -442,3 +446,66 @@ typedef union epoll_data
 ![alt text](assets/info_day09_channel-fd03.png)
 
 ![alt text](assets/info_day09_port_reuse.png)
+
+## day10 加入线程池到服务器
+### 基本思想
+
+
+#### 默认参数处理
+
+![alt text](assets/info_day10_default_para00.png)
+
+![alt text](assets/info_day10_default_para01.png)
+
+![alt text](assets/info_day10_default_para02.png)
+
+
+#### 大括号多种用法
+
+![alt text](assets/info_day10_brace00.png)
+
+![alt text](assets/info_day10_brace01.png)
+
+![alt text](assets/info_day10_brace02.png)
+
+![alt text](assets/info_day10_brace03.png)
+
+![alt text](assets/info_day10_brace04.png)
+
+![alt text](assets/info_day10_brace05.png)
+
+![alt text](assets/info_day10_brace06.png)
+
+#### emplace && emplace_back
+
+- 使用push_back() 会调用一次拷贝构造函数
+- 使用 emplace_back，直接在容器内构造对象，不调用拷贝构造函数
+- 使用 queue 的 emplace，不调用拷贝或移动构造函数
+
+![alt text](assets/info_day10_emplace_back.png)
+
+![alt text](assets/info_day10_emplace.png)
+
+#### mutex
+- uniqie_lock 在使用上比 lock_quard 灵活，但代价就是效率会低一点，并且内存占用量也会相对高一些。
+- 保护是通过对 tasks_ 的每一次访问（无论是读还是写）都加锁实现的。互斥保护的定义:保护任务队列的核心逻辑是 在对 tasks_ 进行操作时，必须持有 tasks_mtx_ 的锁，即加锁后才能访问 tasks_。这通过 RAII 风格的 std::unique_lock 实现.
+- 在访问 tasks_ 之前，通过互斥锁 tasks_mtx_ 确保当前线程独占对任务队列的访问权限。
+- 当锁被持有时，其他线程试图访问 tasks_ 会被阻塞。
+
+![alt text](assets/info_day10_mutex.png)
+
+#### thread
+
+![alt text](assets/info_day10_thread_join.png)
+
+![alt text](assets/info_day10_thread_join_detach.png)
+
+![alt text](assets/info_day10_thread_joinable.png)
+
+#### threadpool
+
+![alt text](assets/info_day10_threadpool00.png)
+
+![alt text](assets/info_day10_threadpool01.png)
+
+![alt text](assets/info_day10_threadpool02.png)
