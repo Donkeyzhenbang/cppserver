@@ -11,14 +11,15 @@ ThreadPool::ThreadPool(int size) : stop_(false)
 {
     for(int i = 0; i < size; i ++){
         //![this]：捕获当前对象的指针，使 lambda 函数能够访问 ThreadPool 的成员变量（如 tasks_mtx_ 和 cv_）。
-        threads_.emplace_back(std::thread([this](){
-            while(true){
+        threads_.emplace_back(std::thread([this, i](){
+            while(true){                
                 std::function<void()> task;
                 {
+                    std::cout << "Thread " << i << " Starting ... \n";
                     std::unique_lock<std::mutex> lock(tasks_mtx_);
                     cv_.wait(lock, [this](){
                         return stop_ || !tasks_.empty();
-                    });
+                    }); 
                     if(stop_ && tasks_.empty()) return;
                     task = tasks_.front();
                     tasks_.pop();

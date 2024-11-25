@@ -1,3 +1,4 @@
+#include <iostream>
 #include "Channel.h"
 #include "EventLoop.h"
 
@@ -13,7 +14,10 @@ Channel::~Channel()
 
 void Channel::handleEvent()
 {
-    callback_();
+    // callback_();
+    //!添加线程实际上向线程任务队列添加任务
+    loop_->addThread(callback_);
+    std::cout << "add thread \n";
 }
 
 void Channel::enableReading()

@@ -1,3 +1,4 @@
+#include <iostream>
 #include <vector>
 #include "EventLoop.h"
 #include "Epoll.h"
@@ -17,6 +18,7 @@ EventLoop::~EventLoop()
 
 void EventLoop::loop()
 {
+    std::cout << "Server Starting \n";
     while(!quit){
         std::vector<Channel*> chs;
         chs = ep_->poll(); //!在此执行epoll_wait
