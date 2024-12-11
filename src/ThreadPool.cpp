@@ -52,5 +52,5 @@ void ThreadPool::add(std::function<void()> func)
             throw std::runtime_error("ThreadPool already stop, can't add task any more");
         tasks_.emplace(func);           
     }
-    cv_.notify_one();
+    cv_.notify_one(); //唤醒一个线程执行任务
 }

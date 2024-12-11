@@ -437,7 +437,7 @@ typedef union epoll_data
 
 > 下面是之前使用channel操作epoll的优势：是channel相比于传统的单个fd
 
-![alt text](assets/info_day09_channel-fd.png)
+![alt text](assets/info_day09_channel-fd00.png)
 
 ![alt text](assets/info_day09_channel-fd01.png)
 
@@ -509,3 +509,21 @@ typedef union epoll_data
 ![alt text](assets/info_day10_threadpool01.png)
 
 ![alt text](assets/info_day10_threadpool02.png)
+
+## day11 完善线程池
+### 基本思想
+
+#### reactor
+
+- 单Reactor模型既负责建立连接，又负责监听，面对瞬间的高并发会有性能瓶颈
+- 多Reactor模型main-reactor只负责由acceptor建立连接，建立连接后将其分发给sub-reactor，由sub-reactor负责监听
+
+![alt text](assets/info_day11_reactor00.png)
+
+![alt text](assets/info_day11_reactor01.png)
+
+![alt text](assets/info_day11_reactor02.png)
+
+![alt text](assets/info_day11_async.png)
+
+![alt text](assets/info_day11_proactor.png)
