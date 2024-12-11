@@ -513,7 +513,7 @@ typedef union epoll_data
 ## day11 完善线程池
 ### 基本思想
 
-#### reactor
+#### Reactor && Proactor
 
 - 单Reactor模型既负责建立连接，又负责监听，面对瞬间的高并发会有性能瓶颈
 - 多Reactor模型main-reactor只负责由acceptor建立连接，建立连接后将其分发给sub-reactor，由sub-reactor负责监听
@@ -524,6 +524,28 @@ typedef union epoll_data
 
 ![alt text](assets/info_day11_reactor02.png)
 
+![alt text](assets/info_day11_proactor.png)
+
 ![alt text](assets/info_day11_async.png)
 
-![alt text](assets/info_day11_proactor.png)
+#### 左值引用与右值引用
+
+![alt text](assets/info_day11_lvalue_rvalue_reference.png)
+
+![alt text](assets/info_day11_universal_reference.png)
+
+![alt text](assets/info_day11_reference_collapse.png)
+
+#### C++模板
+
+![alt text](assets/info_day11_inline_constexpr.png)
+
+![alt text](assets/info_day11_template00.png)
+
+![alt text](assets/info_day11_template01.png)
+
+![alt text](assets/info_day11_std_future_resultof.png)
+
+![alt text](assets/info_day11_packaged_task.png)
+
+![alt text](assets/info_day11_get_future.png)
