@@ -14,13 +14,13 @@ Acceptor::Acceptor(EventLoop* loop) : loop_(loop), sock_(nullptr), acceptChannel
     InetAddress* addr = new InetAddress(NET_IP, NET_PORT);
     sock_->bind(addr); 
     sock_->listen();
-    sock_->setnonblocking();
+    // sock_->setnonblocking(); /acceptor使用阻塞式IO比较好
     acceptChannel_ = new Channel(loop_, sock_->getFd());
     //!预先绑定回调函数，服务器每当有一个连接到来，执行newConnection函数
     std::function<void()> cb = std::bind(&Acceptor::acceptConnection, this);
     acceptChannel_->setReadCallback(cb);
     acceptChannel_->enableReading();
-    acceptChannel_->setUseThreadPool(false);
+    // acceptChannel_->setUseThreadPool(false);
     delete addr;
 }
 

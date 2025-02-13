@@ -18,17 +18,24 @@ void Channel::handleEvent()
     //!添加线程实际上向线程任务队列添加任务
     // loop_->addThread(callback_);
     // std::cout << "add thread \n";
+    // if(ready_ & (EPOLLIN | EPOLLPRI)){
+    //     if(useThreadPool_)
+    //         loop_->addThread(readCallback_);
+    //     else 
+    //         readCallback_();
+    // }
+    // if(ready_ & (EPOLLOUT)){
+    //     if(useThreadPool_)
+    //         loop_->addThread(writeCallback_);
+    //     else
+    //         writeCallback_();
+    // }
+
     if(ready_ & (EPOLLIN | EPOLLPRI)){
-        if(useThreadPool_)
-            loop_->addThread(readCallback_);
-        else 
-            readCallback_();
+        readCallback_();
     }
     if(ready_ & (EPOLLOUT)){
-        if(useThreadPool_)
-            loop_->addThread(writeCallback_);
-        else
-            writeCallback_();
+        writeCallback_();
     }
 }
 

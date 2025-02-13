@@ -17,7 +17,7 @@ private:
     std::condition_variable cv_;                    //条件变量
     bool stop_;
 public:
-    ThreadPool(int size = 10);
+    ThreadPool(int size = std::thread::hardware_concurrency());
     ~ThreadPool();
 
     // void add(std::function<void()>);

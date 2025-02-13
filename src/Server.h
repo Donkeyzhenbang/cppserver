@@ -1,6 +1,9 @@
 #pragma once
 
+
 #include <map>
+#include <vector>
+#include "ThreadPool.h"
 
 class EventLoop;
 class Socket;
@@ -9,9 +12,12 @@ class Connection;
 class Server
 {
 private:
-    EventLoop* loop_;
+    // EventLoop* loop_;
+    EventLoop* mainReactor_;
     Acceptor* acceptor_;
-    std::map<int, Connection*> connections;//键为该连接客户端的socket fd，值为指向该连接的指针
+    std::map<int, Connection*> connections_;//键为该连接客户端的socket fd，值为指向该连接的指针
+    std::vector<EventLoop*> subReactors_;
+    ThreadPool* thpool_;
 public:
     Server(EventLoop*);
     ~Server();

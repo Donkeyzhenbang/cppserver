@@ -15,7 +15,7 @@ ThreadPool::ThreadPool(int size) : stop_(false)
             while(true){                
                 std::function<void()> task;
                 {
-                    std::cout << "Thread " << i << " Starting ... \n";
+                    // std::cout << "Thread " << i << " Starting ... \n";
                     std::unique_lock<std::mutex> lock(tasks_mtx_);
                     cv_.wait(lock, [this](){
                         return stop_ || !tasks_.empty();

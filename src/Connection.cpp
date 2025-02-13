@@ -18,7 +18,7 @@ Connection::Connection(EventLoop* loop, Socket* sock) : loop_(loop), sock_(sock)
     channel_->useET();
     std::function<void()> cb = std::bind(&Connection::echo, this, sock_->getFd());
     channel_->setReadCallback(cb);
-    channel_->setUseThreadPool(false);
+    // channel_->setUseThreadPool(false);
     readBuffer = new Buffer();
 }
 
@@ -40,7 +40,7 @@ void Connection::echo(int sockfd){
             std::cout << "continue reading \n";
             continue;
         } else if(bytes_read == -1 && ((errno == EAGAIN) || (errno == EWOULDBLOCK))){//非阻塞IO，这个条件表示数据全部读取完毕
-            std::cout << "finish reading once\n";
+            // std::cout << "finish reading once\n";
             std::cout << "message from client fd " << sockfd << " data : " << readBuffer->c_str() << std::endl;
             // errif(write(sockfd, readBuffer->c_str(), readBuffer->size()) == -1, "socket write error");
             send(sockfd);
@@ -50,6 +50,10 @@ void Connection::echo(int sockfd){
             std::cout << "EOF, client fd " << sockfd << "disconnected\n";
             // close(sockfd);   //关闭socket会自动将文件描述符从epoll树上移除
             deleteConnectionCallback(sockfd);//!注意这里会执行客户端断开连接的回调函数，会点函数注册在Server类中newConnection中
+            break;
+        } else {
+            printf("Connection reset by peer\n");
+            deleteConnectionCallback(sockfd);         
             break;
         }
     }

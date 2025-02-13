@@ -13,17 +13,29 @@
 #define READ_BUFFER 1024
 
 
-Server::Server(EventLoop* loop) : loop_(loop), acceptor_(nullptr)
+Server::Server(EventLoop* loop) : mainReactor_(loop), acceptor_(nullptr)
 {
-    acceptor_ = new Acceptor(loop_);
+    acceptor_ = new Acceptor(mainReactor_);
     //!std::placeholders::_1 是一个占位符，表示绑定的函数对象在调用时会接收的第一个参数。
     std::function<void(Socket*)> cb = std::bind(&Server::newConnection, this, std::placeholders::_1);
     acceptor_->setNewConnectionCallback(cb);
+
+    int size = std::thread::hardware_concurrency();
+    thpool_ = new ThreadPool(size);
+    for(int i = 0; i < size; i ++){
+        subReactors_.push_back(new EventLoop());
+    }
+    for(int i = 0; i < size; i ++){
+        std::function<void()> sub_loop = std::bind(&EventLoop::loop, subReactors_[i]);
+        thpool_->add(sub_loop);
+    }
+
 }
 
 Server::~Server()
 {
     delete acceptor_;
+    delete thpool_;
 }
 
 
@@ -31,10 +43,11 @@ Server::~Server()
 void Server::newConnection(Socket* serv_sock)
 {
     if(serv_sock->getFd() != -1){
-        Connection* conn = new Connection(loop_, serv_sock);
+        int random = serv_sock->getFd() % subReactors_.size();
+        Connection* conn = new Connection(subReactors_[random], serv_sock);
         std::function<void(int)> cb = std::bind(&Server::deleteConnection, this, std::placeholders::_1);
         conn->setDeleteConnectionCallback(cb);
-        connections[serv_sock->getFd()] = conn;
+        connections_[serv_sock->getFd()] = conn;
     }
 
 
@@ -54,10 +67,10 @@ void Server::deleteConnection(int sockfd)
     // connections.erase(sock->getFd());
     // delete conn;
     if(sockfd != -1){
-        auto it = connections.find(sockfd);
-        if(it != connections.end()){
-            Connection *conn = connections[sockfd];
-            connections.erase(sockfd);
+        auto it = connections_.find(sockfd);
+        if(it != connections_.end()){
+            Connection *conn = connections_[sockfd];
+            connections_.erase(sockfd);
             delete conn;
         }
     }

@@ -553,3 +553,13 @@ typedef union epoll_data
 ![alt text](assets/info_day11_command_line_argument_parsing.png)
 
 ![alt text](assets/info_day11_task_get_future.png)
+
+
+## day12 主从Reactor多线程
+
+- one loop per thread
+- 服务器一般只有一个main Reactor，有很多个sub Reactor。
+- 服务器管理一个线程池，每一个sub Reactor由一个线程来负责Connection上的事件循环，事件执行也在这个线程中完成。
+- main Reactor只负责Acceptor建立新连接，然后将这个连接分配给一个sub Reactor。
+
+通过今天的设计，我们的服务器变成了主从Reactor模式，服务器类包含线程池，主线程负责main-reactor，负责充当acceptor角色，职责是接受连接，并将连接分配给其他sub-reactor，每一个sub-reactor有一个线程负责时间循环也就是所谓的`one loop per thread`,此外本次设计中我们所使用的调度算法是全随机调度，后续应该考虑更优的调度策略以保证负载均衡。至此，一个简易服务器的所有核心模块已经开发完成，采用主从Reactor多线程模式。在这个模式中，服务器以事件驱动作为核心，服务器线程只负责mainReactor的新建连接任务，同时维护一个线程池，每一个线程也是一个事件循环，新连接建立后分发给一个subReactor开始事件监听，有事件发生则在当前线程处理。这种模式几乎是目前最先进、最好的服务器设计模式
