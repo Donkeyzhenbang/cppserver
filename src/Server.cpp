@@ -30,10 +30,13 @@ Server::~Server()
 //!客户端每次连接上上来，会先执行这个函数，为客户端绑定事件回调函数handleReadEvent，当发生可读事件时相应。
 void Server::newConnection(Socket* serv_sock)
 {
-    Connection* conn = new Connection(loop_, serv_sock);
-    std::function<void(Socket*)> cb = std::bind(&Server::deleteConnection, this, std::placeholders::_1);
-    conn->setDeleteConnectionCallback(cb);
-    connections[serv_sock->getFd()] = conn;
+    if(serv_sock->getFd() != -1){
+        Connection* conn = new Connection(loop_, serv_sock);
+        std::function<void(int)> cb = std::bind(&Server::deleteConnection, this, std::placeholders::_1);
+        conn->setDeleteConnectionCallback(cb);
+        connections[serv_sock->getFd()] = conn;
+    }
+
 
     // InetAddress* clnt_addr = new InetAddress();
     // Socket* clnt_sock = new Socket(serv_sock->accept(clnt_addr));
@@ -45,9 +48,18 @@ void Server::newConnection(Socket* serv_sock)
     // clnt_channel->enableReading();
 }
 
-void Server::deleteConnection(Socket* sock)
+void Server::deleteConnection(int sockfd)
 {
-    Connection* conn = connections[sock->getFd()];
-    connections.erase(sock->getFd());
-    delete conn;
+    // Connection* conn = connections[sock->getFd()];
+    // connections.erase(sock->getFd());
+    // delete conn;
+    if(sockfd != -1){
+        auto it = connections.find(sockfd);
+        if(it != connections.end()){
+            Connection *conn = connections[sockfd];
+            connections.erase(sockfd);
+            delete conn;
+        }
+    }
+
 }

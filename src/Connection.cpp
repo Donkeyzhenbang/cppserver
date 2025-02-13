@@ -49,13 +49,13 @@ void Connection::echo(int sockfd){
         } else if(bytes_read == 0){  //EOF，客户端断开连接
             std::cout << "EOF, client fd " << sockfd << "disconnected\n";
             // close(sockfd);   //关闭socket会自动将文件描述符从epoll树上移除
-            deleteConnectionCallback(sock_);//!注意这里会执行客户端断开连接的回调函数，会点函数注册在Server类中newConnection中
+            deleteConnectionCallback(sockfd);//!注意这里会执行客户端断开连接的回调函数，会点函数注册在Server类中newConnection中
             break;
         }
     }
 }
 
-void Connection::setDeleteConnectionCallback(std::function<void(Socket*)> cb)
+void Connection::setDeleteConnectionCallback(std::function<void(int)> cb)
 {
     deleteConnectionCallback = cb;
 }
