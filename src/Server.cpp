@@ -27,7 +27,7 @@ Server::~Server()
 }
 
 
-//!客户端每次连接上上来，会先执行这个函数，为客户端绑定事件回调函数handleReadEvent，当发生可读事件时相应。
+//!客户端每次连接上上来，会先执行这个函数，为客户端绑定事件回调函数handleReadEvent，当发生可读事件时响应。
 void Server::newConnection(Socket* serv_sock)
 {
     if(serv_sock->getFd() != -1){
