@@ -18,8 +18,9 @@ Acceptor::Acceptor(EventLoop* loop) : loop_(loop), sock_(nullptr), acceptChannel
     acceptChannel_ = new Channel(loop_, sock_->getFd());
     //!预先绑定回调函数，服务器每当有一个连接到来，执行newConnection函数
     std::function<void()> cb = std::bind(&Acceptor::acceptConnection, this);
-    acceptChannel_->setCallback(cb);
+    acceptChannel_->setReadCallback(cb);
     acceptChannel_->enableReading();
+    acceptChannel_->setUseThreadPool(false);
     delete addr;
 }
 

@@ -14,14 +14,17 @@
 Connection::Connection(EventLoop* loop, Socket* sock) : loop_(loop), sock_(sock), channel_(nullptr), inBuffer(new std::string()), readBuffer(nullptr)
 {
     channel_ = new Channel(loop_, sock_->getFd());
-    std::function<void()> cb = std::bind(&Connection::echo, this, sock_->getFd());
-    channel_->setCallback(cb);
     channel_->enableReading();
+    channel_->useET();
+    std::function<void()> cb = std::bind(&Connection::echo, this, sock_->getFd());
+    channel_->setReadCallback(cb);
+    channel_->setUseThreadPool(false);
     readBuffer = new Buffer();
 }
 
 Connection::~Connection()
 {
+    delete readBuffer;
     delete channel_;
     delete sock_;
 }
@@ -39,7 +42,8 @@ void Connection::echo(int sockfd){
         } else if(bytes_read == -1 && ((errno == EAGAIN) || (errno == EWOULDBLOCK))){//非阻塞IO，这个条件表示数据全部读取完毕
             std::cout << "finish reading once\n";
             std::cout << "message from client fd " << sockfd << " data : " << readBuffer->c_str() << std::endl;
-            errif(write(sockfd, readBuffer->c_str(), readBuffer->size()) == -1, "socket write error");
+            // errif(write(sockfd, readBuffer->c_str(), readBuffer->size()) == -1, "socket write error");
+            send(sockfd);
             readBuffer->clear();
             break;
         } else if(bytes_read == 0){  //EOF，客户端断开连接
@@ -54,4 +58,19 @@ void Connection::echo(int sockfd){
 void Connection::setDeleteConnectionCallback(std::function<void(Socket*)> cb)
 {
     deleteConnectionCallback = cb;
+}
+
+void Connection::send(int sockfd)
+{
+    char buf[readBuffer->size()];
+    strcpy(buf, readBuffer->c_str());
+    int data_size = readBuffer->size();
+    int data_left = data_size;
+    while(data_left > 0){
+        ssize_t bytes_write = write(sockfd, buf + data_size - data_left, data_left);
+        if(bytes_write == -1 && errno == EAGAIN){
+            break;
+        }
+        data_left -= bytes_write;
+    }
 }
