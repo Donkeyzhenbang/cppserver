@@ -1,22 +1,20 @@
 // =================day07=========================
+#include "../src/include/Server.h"
 #include <iostream>
-#include "src/EventLoop.h"
-#include "src/Server.h"
-
+#include "../src/include/EventLoop.h"
 
 int main() {
-    EventLoop *loop = new EventLoop();
-    Server *server = new Server(loop);
-    loop->loop();
-    delete loop;
-    delete server;
-    return 0;
+  EventLoop *loop = new EventLoop();
+  Server *server = new Server(loop);
+  loop->loop();
+  delete loop;
+  delete server;
+  return 0;
 }
 
 // =================day06=========================
 // #include "src/EventLoop.h"
 // #include "src/Server.h"
-
 
 // int main() {
 //     EventLoop *loop = new EventLoop();
@@ -26,7 +24,6 @@ int main() {
 //     delete loop;
 //     return 0;
 // }
-
 
 //=================day05=========================
 // #include <stdio.h>
@@ -40,8 +37,6 @@ int main() {
 // #include "./src/InetAddress.h"
 // #include "./src/Socket.h"
 // #include "./src/Channel.h"
-
-
 
 // #define MAX_EVENTS 1024
 // #define READ_BUFFER 1024
@@ -57,7 +52,7 @@ int main() {
 //     Socket *serv_sock = new Socket();
 //     InetAddress *serv_addr = new InetAddress(NET_IP, NET_PORT);
 //     serv_sock->bind(serv_addr);
-//     serv_sock->listen();    
+//     serv_sock->listen();
 //     Epoll *ep = new Epoll();
 //     serv_sock->setnonblocking();
 //     Channel *servChannel = new Channel(ep, serv_sock->getFd());
@@ -70,8 +65,8 @@ int main() {
 //             if(chfd == serv_sock->getFd()){        //新客户端连接
 //                 InetAddress *clnt_addr = new InetAddress();      //会发生内存泄露！没有delete
 //                 Socket *clnt_sock = new Socket(serv_sock->accept(clnt_addr));       //会发生内存泄露！没有delete
-//                 printf("new client fd %d! IP: %s Port: %d\n", clnt_sock->getFd(), inet_ntoa(clnt_addr->addr.sin_addr), ntohs(clnt_addr->addr.sin_port));
-//                 clnt_sock->setnonblocking();
+//                 printf("new client fd %d! IP: %s Port: %d\n", clnt_sock->getFd(),
+//                 inet_ntoa(clnt_addr->addr.sin_addr), ntohs(clnt_addr->addr.sin_port)); clnt_sock->setnonblocking();
 //                 Channel *clntChannel = new Channel(ep, clnt_sock->getFd());
 //                 clntChannel->enableReading();//!epoll_ctl
 //             } else if(activeChannels[i]->getRevents() & EPOLLIN){      //可读事件
@@ -97,7 +92,8 @@ int main() {
 //         } else if(bytes_read == -1 && errno == EINTR){  //客户端正常中断、继续读取
 //             printf("continue reading");
 //             continue;
-//         } else if(bytes_read == -1 && ((errno == EAGAIN) || (errno == EWOULDBLOCK))){//非阻塞IO，这个条件表示数据全部读取完毕
+//         } else if(bytes_read == -1 && ((errno == EAGAIN) || (errno ==
+//         EWOULDBLOCK))){//非阻塞IO，这个条件表示数据全部读取完毕
 //             printf("finish reading once, errno: %d\n", errno);
 //             break;
 //         } else if(bytes_read == 0){  //EOF，客户端断开连接
@@ -145,8 +141,8 @@ int main() {
 //             if(events[i].data.fd == serv_sock->getFd()){ //新客户端连接
 //                 InetAddress* clnt_addr = new InetAddress();
 //                 Socket* clnt_sock = new Socket(serv_sock->accept(clnt_addr));
-//                 std::cout << "new client fd " << clnt_sock->getFd() << " IP " << inet_ntoa(clnt_addr->addr.sin_addr) << " Port " << ntohs(clnt_addr->addr.sin_port) << std::endl;
-//                 clnt_sock->setnonblocking();
+//                 std::cout << "new client fd " << clnt_sock->getFd() << " IP " << inet_ntoa(clnt_addr->addr.sin_addr)
+//                 << " Port " << ntohs(clnt_addr->addr.sin_port) << std::endl; clnt_sock->setnonblocking();
 //                 ep->addFd(clnt_sock->getFd(), EPOLLIN | EPOLLET);//epoll ctl add
 //             }else if(events[i].events & EPOLLIN){ //发生可读事件
 //                 handleReadEvent(events[i].data.fd);
@@ -170,10 +166,11 @@ int main() {
 //         } else if(bytes_read == -1 && errno == EINTR){  //客户端正常中断、继续读取
 //             printf("continue reading");
 //             continue;
-//         } else if(bytes_read == -1 && ((errno == EAGAIN) || (errno == EWOULDBLOCK))){//非阻塞IO，这个条件表示数据全部读取完毕
+//         } else if(bytes_read == -1 && ((errno == EAGAIN) || (errno ==
+//         EWOULDBLOCK))){//非阻塞IO，这个条件表示数据全部读取完毕
 //             printf("finish reading once, errno: %d\n", errno);
 //             break;
-//         } else if(bytes_read == 0){  //EOF，客户端断开连接 
+//         } else if(bytes_read == 0){  //EOF，客户端断开连接
 //             printf("EOF, client fd %d disconnected\n", sockfd);
 //             close(sockfd);   //关闭socket会自动将文件描述符从epoll树上移除
 //             break;

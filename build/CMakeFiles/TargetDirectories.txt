@@ -1,0 +1,17 @@
+/home/jym/code/cpp/webserver/build/CMakeFiles/rebuild_cache.dir
+/home/jym/code/cpp/webserver/build/CMakeFiles/edit_cache.dir
+/home/jym/code/cpp/webserver/build/CMakeFiles/clang-tidy.dir
+/home/jym/code/cpp/webserver/build/CMakeFiles/cpplint.dir
+/home/jym/code/cpp/webserver/build/CMakeFiles/check-format.dir
+/home/jym/code/cpp/webserver/build/CMakeFiles/format.dir
+/home/jym/code/cpp/webserver/build/src/CMakeFiles/rebuild_cache.dir
+/home/jym/code/cpp/webserver/build/src/CMakeFiles/edit_cache.dir
+/home/jym/code/cpp/webserver/build/src/CMakeFiles/pine_shared.dir
+/home/jym/code/cpp/webserver/build/test/CMakeFiles/rebuild_cache.dir
+/home/jym/code/cpp/webserver/build/test/CMakeFiles/edit_cache.dir
+/home/jym/code/cpp/webserver/build/test/CMakeFiles/test.dir
+/home/jym/code/cpp/webserver/build/test/CMakeFiles/client.dir
+/home/jym/code/cpp/webserver/build/test/CMakeFiles/ThreadPoolTest.dir
+/home/jym/code/cpp/webserver/build/test/CMakeFiles/check-tests.dir
+/home/jym/code/cpp/webserver/build/test/CMakeFiles/server.dir
+/home/jym/code/cpp/webserver/build/test/CMakeFiles/build-tests.dir

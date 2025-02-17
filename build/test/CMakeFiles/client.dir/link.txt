@@ -1,0 +1,1 @@
+/usr/bin/c++   -fPIC -Wall -Wextra -std=c++17 -pthread -Wno-unused-parameter -Wno-attributes   -fPIC CMakeFiles/client.dir/client.cpp.o  -o ../bin/client  -Wl,-rpath,/home/jym/code/cpp/webserver/build/lib ../lib/libpine_shared.so 

@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/jym/code/cpp/webserver/src/include/Buffer.h
+string
+-
+
+/home/jym/code/cpp/webserver/src/include/InetAddress.h
+arpa/inet.h
+-
+
+/home/jym/code/cpp/webserver/src/include/Socket.h
+InetAddress.h
+/home/jym/code/cpp/webserver/src/include/InetAddress.h
+
+/home/jym/code/cpp/webserver/src/include/utils.h
+
+/home/jym/code/cpp/webserver/test/client.cpp
+unistd.h
+-
+cstring
+-
+iostream
+-
+../src/include/Buffer.h
+/home/jym/code/cpp/webserver/src/include/Buffer.h
+../src/include/InetAddress.h
+/home/jym/code/cpp/webserver/src/include/InetAddress.h
+../src/include/Socket.h
+/home/jym/code/cpp/webserver/src/include/Socket.h
+../src/include/utils.h
+/home/jym/code/cpp/webserver/src/include/utils.h
+
