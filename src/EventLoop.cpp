@@ -7,7 +7,7 @@
 #include "Epoll.h"
 #include "ThreadPool.h"
 //!事件驱动
-EventLoop::EventLoop() : ep_(nullptr), quit(false), threadpool_(nullptr) {
+EventLoop::EventLoop() : ep_(nullptr), threadpool_(nullptr), quit(false) {
   ep_ = new Epoll();
   // threadpool_ = new ThreadPool();
 }
