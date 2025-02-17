@@ -3,6 +3,16 @@ DerivePointerAlignment: false
 PointerAlignment: Right
 ColumnLimit: 120
 
+# 设置缩进为 4 个空格
+IndentWidth: 4
+TabWidth: 4
+
 # Default for clang-8, changed in later clangs. Set explicitly for forwards
 # compatibility with modern clangs
-IncludeBlocks: Preserve
+# IncludeBlocks: Preserve
+
+# 控制访问修饰符（private、public）的对齐
+AccessModifierOffset: -4  # 这会将 private/public 等修饰符对齐到类的起始位置
+
+# 对类中的成员和方法缩进进行控制
+AlignAfterOpenBracket: Align

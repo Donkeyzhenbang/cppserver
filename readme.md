@@ -658,3 +658,20 @@ IncludeCategories:
 ![alt text](assets/info_day13_check_options.png)
 
 ![alt text](assets/info_day13_clang_tidy_format_compare.png)
+
+#### clang-tidy-extra
+
+- `CheckConfig` 类用于配置哪些路径应该被 clang-tidy 忽略。
+
+- 在初始化时，它加载了一个正则表达式列表（ignore_pats），其中默认会忽略所有位于 third_party 目录中的文件。
+
+- `should_skip` 方法根据路径匹配该正则表达式列表，决定是否跳过 clang-tidy 的执行。如果路径与任何正则模式匹配，则返回 True，表示跳过执行。
+
+- `_init_config` 方法初始化配置，设置了一个需要被忽略的正则表达式（例如，".*/third_party/.*" 用于忽略第三方库）。
+
+- `should_skip` 方法检查给定路径是否与忽略的正则匹配，如果匹配，则返回 True，表示不执行 clang-tidy。如果没有匹配，则返回 False，执行 clang-tidy。
+
+### cpplint
+
+- cpplint.py 是 Google 提供的一个 C++ 代码风格检查工具，用于检查 C++ 代码是否遵循 Google 的编码规范。它被设计用于帮助开发者发现潜在的代码风格问题，而不做修复。cpplint.py 主要通过分析代码中的注释、格式、变量命名和代码结构等，来提供关于代码风格的反馈。
+
