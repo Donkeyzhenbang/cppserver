@@ -563,3 +563,98 @@ typedef union epoll_data
 - main Reactor只负责Acceptor建立新连接，然后将这个连接分配给一个sub Reactor。
 
 通过今天的设计，我们的服务器变成了主从Reactor模式，服务器类包含线程池，主线程负责main-reactor，负责充当acceptor角色，职责是接受连接，并将连接分配给其他sub-reactor，每一个sub-reactor有一个线程负责时间循环也就是所谓的`one loop per thread`,此外本次设计中我们所使用的调度算法是全随机调度，后续应该考虑更优的调度策略以保证负载均衡。至此，一个简易服务器的所有核心模块已经开发完成，采用主从Reactor多线程模式。在这个模式中，服务器以事件驱动作为核心，服务器线程只负责mainReactor的新建连接任务，同时维护一个线程池，每一个线程也是一个事件循环，新连接建立后分发给一个subReactor开始事件监听，有事件发生则在当前线程处理。这种模式几乎是目前最先进、最好的服务器设计模式
+
+## day13 C++工程化
+
+### clang-format
+
+- clang-format 主要用于代码的自动格式化。
+
+`BasedOnStyle: Google` 基于谷歌的代码风格
+
+`DerivePointerAlignment: false` 不自动推导指针对齐方式,clang-format 默认会根据上下文自动推导指针符号（* 或 &）的对齐方式。这里设置为 false，表示不自动推导，而是手动指定对齐方式。
+
+`ointerAlignment: Right` 指针符号对齐方式为右对齐。 例如 `int* ptr;`
+
+`ColumnLimit: 120` 代码的最大列宽限制为 120 个字符。
+
+`IncludeBlocks: Preserve` clang-format 通常会自动整理 #include 的顺序和分组。这里设置为 Preserve，表示不对 #include 块进行自动调整
+
+如果我们需要设置`#include` 的顺序和分组,可以使用Regroup，因为它可以根据优先级对头文件进行分组和排序 `IncludeBlocks: Regroup`
+
+```yaml
+BasedOnStyle: Google
+IncludeBlocks: Regroup
+SortIncludes: true
+
+IncludeCategories:
+  - Regex:           '^<.*>'  # 系统头文件
+    Priority:        1
+  - Regex:           '^".*/(gtest|gmock).*"'  # 测试相关头文件
+    Priority:        2
+  - Regex:           '.*'  # 其他头文件
+    Priority:        3
+```
+
+通过以上配置，clang-format 会按照优先级对头文件进行排序，同时在每个优先级组内按字母顺序排列,通过`Regroup + IncludeCategories`会使得以下头文件变成这样
+
+```cpp
+
+#include <iostream>
+#include <vector>
+
+#include "gtest/gtest.h"
+
+#include "my_project/config.h"
+#include "my_project/utils.h"
+```
+
+```cpp
+#include <iostream>
+#include <vector>
+
+#include "gtest/gtest.h"
+
+#include "my_project/config.h"
+#include "my_project/utils.h"
+```
+
+
+- format用于本地代码格式化，他检测到问题会直接修改；check-format只会检查问题，不会直接修改
+- CMakeLists中在执行clang-format的时候，会优先去指定的目录寻找clang-format 这里作者已经定义好了
+`set(PINE_CLANG_SEARCH_PATH "/usr/local/bin" "/usr/bin" "/usr/local/opt/llvm/bin" "/usr/local/opt/llvm@8/bin" "/usr/local/Cellar/llvm/8.0.1/bin")`
+- 相关参数具体见`run_clang_tidy.py`这里执行run_clang_tidy.py时 fix表示修改源代码 quiet表示不输出错误信息 source_dirs后续跟着执行格式化的目录
+- 如果命令行参数 --fix 被指定，则执行代码格式修复。subprocess.check_call 调用 clang-format 工具并传入 -i 参数，直接修改文件内容以符合格式。
+- subprocess.check_output：执行外部命令并捕获其输出（如命令的标准输出）。
+- subprocess.check_call：执行外部命令并检查其返回的退出状态码。如果命令执行成功，它什么都不返回；如果失败，它抛出异常。
+- difflib.unified_diff：生成两个文本之间的统一格式的差异输出，通常用于显示文件或字符串之间的变化。
+
+![alt text](assets/info_day13_subprocess_check_output.png)
+
+![alt text](assets/info_day13_subprocess_check_call.png)
+
+![alt text](assets/info_day13_difflib.png)
+
+![alt text](assets/info_day13_difflib_demo.png)
+
+### clang-tidy
+
+- `checks`列出来所有启用的检查类型
+
+- `check options`定义了特定检查的具体配置选项
+
+- `clang-tidy` 不仅可以检查代码风格，还可以执行各种静态代码分析，检测潜在的错误、性能问题、未使用的变量、内存泄漏、线程问题等。clang-tidy 通过静态分析帮助开发者发现和修复潜在的缺陷。
+
+- `WarningsAsErrors` 设置表示将所有警告视为错误。这意味着，如果 Clang-Tidy 报告任何警告，构建过程会中止，并将警告作为错误处理。这通常用于确保代码完全符合规范。
+
+- `HeaderFilterRegex: '/(src|test)/include'` 这个设置控制哪些头文件会被 Clang-Tidy 分析,这可以帮助减少不相关文件的分析，集中在实际的源代码和测试代码上。
+
+- `AnalyzeTemporaryDtors: true` 启用临时析构函数的分析。这个选项用于在分析过程中处理临时对象的析构行为，确保在对象生命周期结束时没有问题。
+
+
+
+![alt text](assets/info_day13_checks.png)
+
+![alt text](assets/info_day13_check_options.png)
+
+![alt text](assets/info_day13_clang_tidy_format_compare.png)

@@ -1,21 +1,20 @@
 #pragma once
 #include "InetAddress.h"
 class InetAddress;
-class Socket
-{
-private:
-    int fd_;
-public:
-    Socket();
-    Socket(int fd);
-    ~Socket();
+class Socket {
+ private:
+  int fd_;
 
-    void bind(InetAddress*);
-    void listen();
-    void setnonblocking();
+ public:
+  Socket();
+  Socket(int fd);
+  ~Socket();
 
-    int accept(InetAddress*);
-    void connect(InetAddress*);
-    int getFd();
+  void bind(InetAddress *);
+  void listen();
+  void setnonblocking();
 
+  int accept(InetAddress *);
+  void connect(InetAddress *);
+  int getFd();
 };
