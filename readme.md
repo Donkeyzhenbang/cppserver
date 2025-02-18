@@ -685,8 +685,92 @@ IncludeCategories:
 - `apply_fixes` 调用 clang-apply-replacements 应用修复建议
 
 - `run_tidy` 任务队列中获取文件名，并运行 clang-tidy
+  - args: 包含命令行参数的 argparse.Namespace 对象，例如 clang_tidy_binary、checks、config 等。
+  - tmpdir: 临时目录路径，用于存储 clang-tidy 的输出（如修复建议文件）。
+  - build_path: 构建目录路径，通常包含 compile_commands.json 文件。
+  - queue: 一个 queue.Queue 对象，用于存储待处理的文件名。
+  - lock: 一个 threading.Lock 对象，用于线程安全地访问共享资源。
+  - failed_files: 一个列表，用于记录运行失败的文件。
+
+1.循环获取文件名：任务队列中获取一个文件名，并传递给clang-tidy
+
+2.打印当前处理的文件，flush() 确保输出立即刷新到终端
+
+3.构造 clang-tidy 命令，调用 get_tidy_invocation 函数
+
+4.检查是否跳过当前文件，使用 CheckConfig 类的 should_skip 方法检查当前文件是否应该跳过，如果需要跳过，则调用 queue.task_done() 标记任务完成，并继续处理下一个文件
+
+5.运行 clang-tidy：使用 subprocess.Popen 启动 clang-tidy，并捕获其标准输出和标准错误。
+proc.communicate() 等待进程结束，并获取输出和错误信息
+
+6.检查返回码：如果 clang-tidy 返回非零退出码，表示运行失败，将当前文件名添加到 failed_files 列表中。
+
+7.输出结果：使用 lock 确保线程安全；将输出和错误信息解码为字符串（如果存在）；输出 clang-tidy 的结果。注意，这里只处理了 output，而忽略了 err，因为 clang-tidy 的错误信息通常在标准输出中。
+
+8.标记任务完成：调用 queue.task_done() 标记当前任务完成。这会通知队列，当前任务已处理完毕。
+
+- main函数负责解析命令行参数；加载编译数据库；启动多线程运行 clang-tidy；处理失败的文件；导出修复建议或应用修复；清理临时文件并退出。
+
+1.解析命令行参数，使用 argparse 模块创建一个命令行参数解析器，描述了脚本的功能。
+  - 指定 clang-tidy 的路径，默认为 clang-tidy（假设它在 $PATH 中）；
+  - 指定 clang-apply-replacements 的路径，默认为 clang-apply-replacements；
+  - 指定 clang-tidy 的检查规则过滤器；指定 clang-tidy 的配置文件路径或内容；
+  - 指定匹配头文件的正则表达式；
+  - 指定修复建议文件的输出路径；
+  - 指定并行运行的 clang-tidy 实例数量，默认为 CPU 核心数；
+  - 指定要处理的文件路径的正则表达式，默认为所有文件；
+  - 是否应用修复建议；
+  - 是否在应用修复后重新格式化代码；
+  - 指定代码格式化的风格；
+  - 指定编译数据库的路径；
+  - 指定附加到编译器命令行的额外参数；
+  - 指定附加到编译器命令行的额外参数（前置）；是否以静默模式运行 clang-tidy
+
+2.初始化和检查：解析命令行参数。默认编译数据库文件名为 compile_commands.json
+
+3.如果指定了构建路径，则直接使用；否则调用 find_compilation_database 查找编译数据库
+
+4.测试 clang-tidy 是否可用，尝试运行 -list-checks
+
+5.加载 compile_commands.json 文件。将所有文件路径转换为绝对路径
+
+6.设置并行任务：默认为 CPU 核心数；如果需要应用修复或导出修复建议，检查 clang-apply-replacements 是否可用，并创建临时目录
+
+7.构建文件过滤器：根据命令行参数构建正则表达式，用于过滤文件
+
+8.启动多线程任务：创建任务队列，启动多个线程运行 run_tidy 函数
+
+9.填充任务队列：将匹配的文件路径加入任务队列。
+
+10.等待任务完成；处理失败的文件：如果有文件失败，打印失败的文件列表。
+
+11.导出修复建议，如果指定了 --export-fixes，调用 merge_replacement_files 合并修复建议文件
+
+12.应用修复：如果指定了 --fix，调用 apply_fixes 应用修复
+
+13.清理临时文件；退出程序，清空输出缓冲区，根据返回码退出程序。
+
+- 我们在CMakeList.txt中对`make clang-tidy`可以添加 `-export-fixes ${CMAKE_BINARY_DIR}/clang-tidy-fixes.yaml`这样就make clang-tidy之后就可以生成对应的yaml文件即可查看
+
+- traceback.print_exc() 是 Python 的一个内置函数，用于打印异常的堆栈跟踪信息。它会显示异常的类型、消息以及引发异常的代码位置。这在调试过程中非常有用，因为它可以帮助开发者快速定位问题的根源。
+
+- subprocess 是 Python 的一个标准库模块，用于运行外部命令（如系统命令或可执行文件）并与其交互。它提供了比 os.system() 更强大的功能，例如捕获输出、设置超时等
+
+- for _ in range(n) 一般仅仅用于循环n次，不用设置变量，用 _ 指代临时变量，只在这个语句中使用一次
+
+-  with mutex: #with表示自动打开自动释放锁
 
 ![alt text](assets/info_day13_compile_commands.png)
+
+![alt text](assets/info_day13_clang_tidy_output.png)
+
+![alt text](assets/info_day13_python_traceback_print_exc.png)
+
+![alt text](assets/info_day13_python_subprocess.png)
+
+![alt text](assets/info_day13_python_thread.png)
+
+![alt text](assets/info_day13_python_thread_daemon.png)
 
 
 #### clang_tidy_extra.py
