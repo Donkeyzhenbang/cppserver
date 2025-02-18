@@ -659,11 +659,39 @@ IncludeCategories:
 
 ![alt text](assets/info_day13_clang_tidy_format_compare.png)
 
-#### clang-tidy-extra
+
+#### clang_tidy.py
+
+- 本次我们所使用的clang-tidy是LLVM所提供的,`set(CMAKE_EXPORT_COMPILE_COMMANDS ON)`，在CMakeLists.txt中启用这条命令，执行`cmake ..`后会生成`compile_commands.json`文件，该文件一般用于clang-tidy等代码静态分析工具。compile_commands.json 文件是一个 JSON 数组，其中每个元素是一个对象，描述了一个源文件的编译命令
+
+- `from __future__ import` 用于在当前python版本引入未来高级版本的python语法
+
+- `find_compilation_database` 从当前目录向上查找，直到找到对应数据库文件，该文件包含编译器的调用信息。即是上文提到的cmake开启`compile_commands`后生成的对应的json文件，其中存储项目的编译信息
+
+- `make_absolute` 将相对路径转换为绝对路径。
+
+- `get_tidy_invocation`构造 clang-tidy 的命令行参数。
+  - f: 当前处理的文件。
+  - clang_tidy_binary: clang-tidy 的路径。
+  - checks: 指定的检查规则。
+  - tmpd/ir: 临时文件目录，用于存储修复建议。 
+  - build_path: 编译数据库的路径。
+  - 其他 参数用于传递额外的编译器选项。
+
+- `merge_replacement_files`将所有临时生成的修复建议文件合并为一个文件。用于clang-apply-replacements 工具，该工具可以应用修复建议。
+
+- `check_clang_apply_replacements_binary`检查`clang_apply_replacements`工具
+
+- `apply_fixes` 调用 clang-apply-replacements 应用修复建议
+
+- `run_tidy` 任务队列中获取文件名，并运行 clang-tidy
+
+![alt text](assets/info_day13_compile_commands.png)
+
+
+#### clang_tidy_extra.py
 
 - `CheckConfig` 类用于配置哪些路径应该被 clang-tidy 忽略。
-
-- 在初始化时，它加载了一个正则表达式列表（ignore_pats），其中默认会忽略所有位于 third_party 目录中的文件。
 
 - `should_skip` 方法根据路径匹配该正则表达式列表，决定是否跳过 clang-tidy 的执行。如果路径与任何正则模式匹配，则返回 True，表示跳过执行。
 
@@ -676,4 +704,14 @@ IncludeCategories:
 - cpplint.py 是 Google 提供的一个 C++ 代码风格检查工具，用于检查 C++ 代码是否遵循 Google 的编码规范。它被设计用于帮助开发者发现潜在的代码风格问题，而不做修复。cpplint.py 主要通过分析代码中的注释、格式、变量命名和代码结构等，来提供关于代码风格的反馈。
 
 - 使用 `make cpplint` ；cpplint：基于google C++编码规范的静态代码分析工具，可以查找代码中错误、违反约定、建议修改的地方。
+
+### clang/llvm/g++区别联系
+
+- LLVM 是一个开源的编译工具链，提供了一系列用于编译、优化、分析、生成代码的库和工具。LLVM 本身并不是一个编译器，而是一个编译器基础设施项目。它提供了一些关键组件，例如中间表示（IR）、优化器、代码生成器等。这些组件可以被用来构建实际的编译器。
+
+- Clang 是 LLVM 项目的一个子项目，是一个 C、C++ 和 Objective-C 的编译器前端。Clang 是基于 LLVM 的前端。它是一个高度优化的编译器，能够生成高效的机器代码，并提供一些额外的功能，如代码分析、错误提示、性能优化建议等。
+
+- g++ 是 GNU 编译器集合（GCC）中的 C++ 编译器，负责将 C++ 源代码编译成可执行代码。虽然 g++ 和 clang 都是 C++ 编译器，它们有不同的实现。g++ 是 GCC 编译器的 C++ 前端，而 clang 是 LLVM 的 C++ 前端。因此，g++ 和 clang 在编译过程中的功能相似，但实现是独立的，并且使用不同的编译后端（LLVM 与 GCC）。
+
+- clang-tidy 是一个由 LLVM 提供的工具，它是 Clang 的一部分，专门用于静态分析和代码风格检查。它提供了一系列的检查，可以帮助开发者改进代码质量，并确保代码遵循指定的编码规范（如 Google 风格、LLVM 风格等）。clang-tidy 使用 Clang 前端来解析源代码。
 
